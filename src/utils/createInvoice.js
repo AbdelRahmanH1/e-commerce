@@ -1,16 +1,37 @@
-import fs from "fs";
 import PDFDocument from "pdfkit";
+import cloudinary from "cloudinary";
 
-function createInvoice(invoice, path) {
-  let doc = new PDFDocument({ size: "A4", margin: 50 });
+async function createInvoice(invoice) {
+  return new Promise((resolve, reject) => {
+    let doc = new PDFDocument({ size: "A4", margin: 50 });
 
-  generateHeader(doc);
-  generateCustomerInformation(doc, invoice);
-  generateInvoiceTable(doc, invoice);
-  generateFooter(doc);
+    let buffers = [];
+    doc.on("data", buffers.push.bind(buffers));
+    doc.on("end", async () => {
+      const pdfBuffer = Buffer.concat(buffers);
 
-  doc.end();
-  doc.pipe(fs.createWriteStream(path));
+      // Upload PDF to Cloudinary
+      cloudinary.uploader
+        .upload_stream(
+          { resource_type: "raw", folder: "invoices" },
+          (error, result) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+            resolve(result);
+          }
+        )
+        .end(pdfBuffer);
+    });
+
+    generateHeader(doc);
+    generateCustomerInformation(doc, invoice);
+    generateInvoiceTable(doc, invoice);
+    generateFooter(doc);
+
+    doc.end();
+  });
 }
 
 function generateHeader(doc) {
@@ -62,7 +83,6 @@ function generateInvoiceTable(doc, invoice) {
     doc,
     invoiceTableTop,
     "Item",
-
     "Unit Cost",
     "Quantity",
     "Line Total"
@@ -77,7 +97,6 @@ function generateInvoiceTable(doc, invoice) {
       doc,
       position,
       item.name,
-
       formatCurrency(item.itemPrice),
       item.quantity,
       formatCurrency(item.totalPrice)

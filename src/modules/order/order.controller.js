@@ -213,7 +213,8 @@ export const webhooks = asyncHandler(async (request, response) => {
   response.send();
 });
 
-export const payCash = asyncHandler(async (req, res, next) => {
+/* export const payCash = asyncHandler(async (req, res, next) => {
+
   const { address, coupon, phone } = req.body;
 
   let checkCoupon;
@@ -313,6 +314,107 @@ export const payCash = asyncHandler(async (req, res, next) => {
   //clear cart
   orderServices.clearCart(req.user._id);
 
+  return res.json({ success: true, results: { order } });
+}); */
+
+export const payCash = asyncHandler(async (req, res, next) => {
+  const { address, coupon, phone } = req.body;
+
+  let checkCoupon;
+  if (coupon) {
+    checkCoupon = await couponModel.findOne({
+      name: coupon,
+      expiredAt: { $gt: Date.now() },
+    });
+    if (!checkCoupon)
+      return next(new Error("Coupon not valid", { cause: 400 }));
+  }
+  const cart = await cartModel.findOne({ user: req.user._id });
+  const products = cart.products;
+
+  if (products.length < 1)
+    return next(new Error("Cart is empty!!", { cause: 400 }));
+
+  // Check products are valid and in stock
+  let orderProducts = [];
+  let orderPrice = 0;
+
+  for (let i = 0; i < products.length; i++) {
+    const product = await productModel.findById(products[i].productId);
+
+    if (!product)
+      return next(new Error(`Product not found ${products[i].productId}`));
+
+    if (!product.inStock(products[i].quantity))
+      return next(
+        new Error(
+          `Products out of stock only available ${product.avaliableItems}`
+        )
+      );
+    orderProducts.push({
+      name: product.name,
+      quantity: products[i].quantity,
+      itemPrice: product.finalPrice,
+      totalPrice: product.finalPrice * products[i].quantity,
+      productId: product._id,
+    });
+    orderPrice += product.finalPrice * products[i].quantity;
+  }
+
+  // Create order
+  const order = await orderModel.create({
+    user: req.user._id,
+    address,
+    payment: "cash",
+    phone,
+    products: orderProducts,
+    price: orderPrice,
+    coupon: {
+      id: checkCoupon?._id,
+      name: checkCoupon?.name,
+      discount: checkCoupon?.discount,
+    },
+  });
+
+  // Create invoice
+  const user = req.user;
+  const invoice = {
+    shipping: {
+      name: user.username,
+      address: order.address,
+      country: "EG",
+    },
+    items: order.products,
+    subtotal: order.price,
+    paid: order.finalPrice,
+    invoice_nr: order._id,
+  };
+
+  const cloudinaryResult = await createInvoice(invoice);
+  order.invoice = {
+    url: cloudinaryResult.secure_url,
+    id: cloudinaryResult.public_id,
+  };
+
+  // Save order
+
+  await order.save();
+
+  // Send email
+
+  const isSent = await sendMail({
+    to: user.email,
+    subject: "Order Invoice",
+    attachments: [{ path: order.invoice.url, contentType: "application/pdf" }],
+  });
+  if (!isSent) return next("Something wrong");
+
+  // Update stock and clear cart
+
+  await orderServices.updateStock(order.products, true);
+  await orderServices.clearCart(req.user._id);
+
+  // Return response
   return res.json({ success: true, results: { order } });
 });
 
