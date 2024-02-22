@@ -9,14 +9,21 @@ const router = Router();
 
 //create order
 router
-  .route("/")
+  .route("/cash")
   .post(
     isAuthentication,
     isAuthorization("user"),
     validation(orderSchema.createOrder),
-    orderController.createOrder
+    orderController.payCash
   );
-
+router
+  .route("/visa")
+  .post(
+    isAuthentication,
+    isAuthorization("user"),
+    validation(orderSchema.createOrder),
+    orderController.payVisa
+  );
 //cancel order
 
 router
