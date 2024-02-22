@@ -23,6 +23,9 @@ app.use((req, res, next) => {
   }
   express.json()(req, res, next);
 });
+app.get("/", (req, res, next) => {
+  return res.json({ success: true, message: "Welcome to our server" });
+});
 app.use("/auth", authRouter);
 app.use("/category", categoryRouter);
 app.use("/subCategory", subCategoryRouter);
