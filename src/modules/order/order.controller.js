@@ -215,12 +215,14 @@ export const webhooks = asyncHandler(async (request, response) => {
 export const payCash = asyncHandler(async (req, res, next) => {
   const { address, coupon, phone } = req.body;
 
-  let couponExists;
+  let checkCoupon;
   if (coupon) {
-    couponExists = await couponModel.findOne({ name: coupon });
-
-    if (!couponExists)
-      return next(new Error("Coupon not found", { cause: 404 }));
+    const checkCoupon = await couponModel.findOne({
+      name: coupon,
+      expiredAt: { $gt: Date.now() },
+    });
+    if (!checkCoupon)
+      return next(new Error("Coupon not valid", { cause: 400 }));
   }
   const cart = await cartModel.findOne({ user: req.user._id });
   const products = cart.products;
@@ -314,12 +316,14 @@ export const payCash = asyncHandler(async (req, res, next) => {
 
 export const payVisa = asyncHandler(async (req, res, next) => {
   const { address, coupon, phone } = req.body;
-  let couponExists;
+  let checkCoupon;
   if (coupon) {
-    couponExists = await couponModel.findOne({ name: coupon });
-
-    if (!couponExists)
-      return next(new Error("Coupon not found", { cause: 404 }));
+    const checkCoupon = await couponModel.findOne({
+      name: coupon,
+      expiredAt: { $gt: Date.now() },
+    });
+    if (!checkCoupon)
+      return next(new Error("Coupon not valid", { cause: 400 }));
   }
   const cart = await cartModel.findOne({ user: req.user._id });
   const products = cart.products;
@@ -355,7 +359,7 @@ export const payVisa = asyncHandler(async (req, res, next) => {
   const order = await orderModel.create({
     user: req.user._id,
     address,
-    payment: "cash",
+    payment: "visa",
     phone,
     products: orderProducts,
     price: orderPrice,

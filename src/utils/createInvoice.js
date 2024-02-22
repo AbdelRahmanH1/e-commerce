@@ -80,7 +80,7 @@ function generateInvoiceTable(doc, invoice) {
 
       formatCurrency(item.itemPrice),
       item.quantity,
-      formatCurrency(item.finalPrice)
+      formatCurrency(item.totalPrice)
     );
 
     generateHr(doc, position + 20);

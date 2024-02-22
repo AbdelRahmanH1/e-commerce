@@ -19,6 +19,7 @@ export const createProduct = asynHandler(async (req, res, next) => {
   if (!brand) return next(new Error("brand not found", { cause: 404 }));
 
   if (!req.files) return next(new Error("Pics required"));
+  console.log(req.files);
 
   const cloudFolder = nanoid();
 
