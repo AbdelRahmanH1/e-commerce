@@ -24,7 +24,15 @@ const orderSchema = new Schema(
     status: {
       type: String,
       default: "placed",
-      enum: ["placed", "shipped", "delivered", "canceled", "refunded"],
+      enum: [
+        "placed",
+        "shipped",
+        "delivered",
+        "canceled",
+        "refunded",
+        "visa payed",
+        "failed to pay",
+      ],
     },
   },
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
