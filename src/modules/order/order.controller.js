@@ -81,6 +81,7 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     "tempInvoices",
     `${order._id}.pdf`
   );
+  console.log(pdfPath);
   const user = req.user;
   const invoice = {
     shipping: {
@@ -276,6 +277,7 @@ export const payCash = asyncHandler(async (req, res, next) => {
     "tempInvoices",
     `${order._id}.pdf`
   );
+  console.log(pdfPath);
   const user = req.user;
   const invoice = {
     shipping: {
